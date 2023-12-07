@@ -176,7 +176,7 @@ async def goto_location(location: GotoLocation):
 
     # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
     current_location = vehicle.location.global_relative_frame
-    target_location = LocationGlobal(location.latitude, location.longitude, location.altitude)
+    target_location = LocationGlobal(location.latitude, location.longitude, location.altitude - current_location.alt)
 
     # 드론에게 목적지로 이동하도록 명령
     vehicle.simple_goto(target_location)
