@@ -52,6 +52,12 @@
             font-size: 1.3em;
             margin:10px 0 10px 0;
         }
+
+        #popup1 tr:hover {
+            background-color: #c2c2c2;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -176,8 +182,18 @@
         </div>
     </div>
 
+    <!--테스트팝업-->
+    <div id="popup1" style="display:none">
+        <table>
+            <tr>
+                <td width="20" style="background-color: #c2c2c2;"></td>
+                <td style="padding:5px;background-color: white;"><button id="btnGotoPoint">이곳으로 비행</button></td>
+            </tr>
+        </table>
+    </div>
+
     <script type="text/javascript" src="https://map.vworld.kr/js/webglMapInit.js.do?version=2.0&apiKey=CA12EC30-669E-3201-A16A-C4CE25CE2572"></script>
-    <script type="text/javascript" src="https://cesium.com/downloads/cesiumjs/releases/1.82/Build/Cesium/Cesium.js"></script>
+    <script type="text/javascript" src="https://cesium.com/downloads/cesiumjs/releases/1.112/Build/Cesium/Cesium.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
     <script>
@@ -203,6 +219,8 @@
         const droneCheckInterval = 100;
         let viewer = null
 
+        let rightMouseClickPosition = null;
+
         function vwmap() {
             var controlDensity = "vw.DensityType.BASIC";
             var interactionDensity = "vw.DensityType.BASIC";
@@ -227,7 +245,7 @@
 
             viewer = ws3d.viewer;
 
-            // var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
             // handler.setInputAction(function(click) {
             //     var ray = viewer.camera.getPickRay(click.position);
             //     var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
@@ -238,18 +256,174 @@
             //         var latitude = Cesium.Math.toDegrees(cartographic.latitude);
             //         var height = cartographic.height;
 
-            //         //기둥 Entity 추가
+            //         console.log("height : " + height);
+
+            //         var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+            //         var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
+
+            //         // 선 그리기
             //         viewer.entities.add({
-            //             position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
-            //             cylinder: {
-            //                 length: 30.0 + height, // 높이 10m
-            //                 topRadius: 0.5, // 상단 반경
-            //                 bottomRadius: 0.5, // 하단 반경
-            //                 material: Cesium.Color.RED // 색상
+            //             polyline : {
+            //                 positions : [point1, point2],
+            //                 width : 5,
+            //                 material : Cesium.Color.RED
             //             }
             //         });
+
+            //         viewer.entities.add({
+            //         position: point2,
+            //         point: {
+            //             pixelSize: 30,
+            //             color: Cesium.Color.YELLOW,
+            //         }});
             //     }
             // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+
+            handler.setInputAction(function(click) {
+                var ray = viewer.camera.getPickRay(click.position);
+                var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+
+                if (cartesian) {
+                    var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                    var longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                    var latitude = Cesium.Math.toDegrees(cartographic.latitude);
+                    var height = cartographic.height;
+
+                    var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+                    var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
+
+
+                    var popup1 = document.getElementById('popup1');
+                    popup1.style.display = 'block';
+                    popup1.style.position = 'absolute';
+                    popup1.style.bottom = viewer.canvas.clientHeight - click.position.y + 'px';
+                    popup1.style.left = click.position.x + 'px';
+
+                    let btnGotoPoint = document.getElementById("btnGotoPoint");
+
+                    btnGotoPoint.onclick = () => {
+                        // 선 그리기
+                        viewer.entities.add({
+                            polyline : {
+                                positions : [point1, point2],
+                                width : 5,
+                                color : Cesium.Color.RED
+                            }
+                        });
+
+                        viewer.entities.add({
+                        position: point2,
+                        point: {
+                            pixelSize: 20,
+                            color: Cesium.Color.YELLOW,
+                        }});
+
+                        fetch(dronekitAPI + "goto_point", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                "longitude": longitude,
+                                "latitude": latitude,
+                                "altitude": dronePosition.altitude,
+                            }),
+                        })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            console.log("Success:", data);
+                            popup1.style.display = 'none';
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                        });
+                    }
+
+                    
+                }
+            }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+            // handler.setInputAction(function (movement) {
+            //     var cartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
+
+            //     if (cartesian) {
+            //         var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            //         var longitude = Cesium.Math.toDegrees(cartographic.longitude);
+            //         var latitude = Cesium.Math.toDegrees(cartographic.latitude);
+            //         var height = cartographic.height;
+
+
+            //         var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+            //         var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
+
+            //         // 선 그리기
+            //         viewer.entities.add({
+            //             polyline : {
+            //                 positions : [point1, point2],
+            //                 width : 5,
+            //                 material : Cesium.Color.RED
+            //             }
+            //         });
+
+            //         viewer.entities.add({
+            //         position: point2,
+            //         point: {
+            //             pixelSize: 30,
+            //             color: Cesium.Color.YELLOW,
+            //         }});
+
+            //         var popup1 = document.getElementById('popup1');
+
+            //         console.log("test");
+
+            //         popup1.style.display = 'block';
+            //         popup1.style.position = 'absolute';
+            //         popup1.style.bottom = viewer.canvas.clientHeight - movement.position.y + 'px';
+            //         popup1.style.left = movement.position.x + 'px';
+
+            //         let btnGotoPoint = document.getElementById("btnGotoPoint");
+            //         btnGotoPoint.onclick = () => {
+            //             var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+            //             var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
+
+            //             // 선 그리기
+            //             viewer.entities.add({
+            //                 polyline : {
+            //                     positions : [point1, point2],
+            //                     width : 5,
+            //                     material : Cesium.Color.RED
+            //                 }
+            //             });
+
+            //             viewer.entities.add({
+            //             position: point2,
+            //             point: {
+            //                 pixelSize: 30,
+            //                 color: Cesium.Color.YELLOW,
+            //             }});
+            //             // fetch(dronekitAPI + "goto_point", {
+            //             //     method: "POST",
+            //             //     headers: {
+            //             //         "Content-Type": "application/json",
+            //             //     },
+            //             //     body: JSON.stringify({
+            //             //         "longitude": longitude,
+            //             //         "latitude": latitude,
+            //             //         "altitude": dronePosition.altitude,
+            //             //     }),
+            //             // })
+            //             //     .then((response) => response.json())
+            //             //     .then((data) => {
+            //             //         console.log("Success:", data);
+            //             //         popup1.style.display = 'none';
+            //             //     })
+            //             //     .catch((error) => {
+            //             //         console.error("Error:", error);
+            //             //     });
+            //         }
+            //     }
+            // }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
 
         }
 

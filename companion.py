@@ -25,6 +25,11 @@ class ModeChangeRequest(BaseModel):
 class ModeTargetAltitude(BaseModel):
     target_altitude: str
 
+class GotoLocation(BaseModel):
+    latitude: float
+    longitude: float
+    altitude: float  # 해발 고도
+
 global vehicle
 vehicle = None
 
@@ -157,3 +162,20 @@ async def current_location():
         "yaw": math.degrees(attitude.yaw),  # 요
         "armed": math.degrees(vehicle.armed)  # 시동여부
     }
+
+@app.post("/goto_location")
+async def goto_location(location: GotoLocation):
+    global vehicle
+    if vehicle is None:
+        raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
+
+    if vehicle.mode.name != "GUIDED":
+        raise HTTPException(status_code=400, detail="드론이 GUIDED 모드가 아닙니다.")
+
+    # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
+    target_location = LocationGlobal(location.latitude, location.longitude, location.altitude)
+
+    # 드론에게 목적지로 이동하도록 명령
+    vehicle.simple_goto(target_location)
+
+    return {"status": "이동 시작", "target_location": location}
