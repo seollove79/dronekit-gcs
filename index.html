@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        .fullscreen-layer {
+            position: relative;
+            /* 버튼 컨테이너를 위한 포지셔닝 컨텍스트 */
+            width: 100%;
+            height: 100vh;
+            /* 전체 뷰포트 높이 */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* 레이어 배경색 */
+            /* 기타 스타일 */
+        }
+
+        .button-container {
+            padding:10px;
+            width:500px;
+            background-color: #393939;
+            border-radius: 20px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%; /* 왼쪽에서 50%의 위치에 배치 */
+            transform: translateX(-50%); /* X축으로 -50% 이동하여 가운데 정렬 */
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            justify-content: center;
+            opacity: 0.8;
+        }
+
+        .status-container {
+            padding:10px;
+            width:100vw;
+            top:0;
+            background-color: #393939;
+            position: absolute;
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            justify-content: center;
+            opacity: 0.8;
+            color:white;
+        }
+
+        #table-current-status {
+            font-size: 1.3em;
+            margin:10px 0 10px 0;
+        }
+    </style>
+</head>
+
+<body onload="vwmap()">
+    <div class="fullscreen-layer">
+        <div id="vmap" style="width:100%;height:100%"></div>
+        <div class="status-container">
+            <table id="table-current-status">
+                <tr>
+                    <td style="padding-right:10px">상대고도(m) :</td>
+                    <td width="80"><span id="altitudeTxt">--</span></td>
+                    <td style="padding-right:10px">해수면고도(m) : </td>
+                    <td width="80"><span id="seaLevelAltitudeTxt">--</span></td>
+                    <td style="padding-right:10px">YAW(º) : </td>
+                    <td width="80"><span id="yawTxt">--</span></td>
+                    <td style="padding-right:10px">속도(m/s) : </td>
+                    <td width="80"><span id="speedTxt">--</span></td>
+                    <td style="padding-right:10px">배터리(V) : </td>
+                    <td width="80"><span id="batteryTxt">--</span></td>
+                    <td style="padding-right:10px">비행모드 : </td>
+                    <td width="80"><span id="modeTxt">--</span></td>
+                </tr>
+            </table>
+        </div>
+        <div class="button-container">
+            <button type="button" class="btn btn-primary btn-lg" onclick="showConnnetDrone()">드론연결</button>
+            <button type="button" class="btn btn-primary btn-lg" id="btnArmTakeoff" onclick="arm()">시동걸기</button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="showChangeFlightmodeModal()">비행모드변경</button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="zoomToDrone()">ZOOM</button>
+        </div>
+    </div>
+
+    <!--ConnectModal -->
+    <div class="modal fade" id="connectDroneModal" tabindex="-1" aria-labelledby="connectDroneModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="connectDroneModalLabel">드론 연결정보</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form name="formConnectInfo">
+                        <div class="mb-3">
+                            <label for="recipient-name" class="col-form-label">연결방식:</label>
+                            <select class="form-select" aria-label="Default select example" name="connect-type">
+                                <option value="tcp" selected>TCP</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ipaddress" class="col-form-label">아이피주소:</label>
+                            <input type="text" class="form-control" id="ipaddress" name="ipaddress" value="127.0.0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="port-number" class="col-form-label">포트번호:</label>
+                            <input type="number" class="form-control" id="number" name="number" value="5760">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="connectDrone()">연결하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--TakeoffModal -->
+    <div class="modal fade" id="takeoffDroneModal" tabindex="-1" aria-labelledby="connectDroneModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="connectDroneModalLabel">드론 이륙정보</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form name="formTakeoffInfo">
+                        <div class="mb-3">
+                            <label for="recipient-name" class="col-form-label">목표고도:</label>
+                            <select class="form-select" aria-label="Default select example" name="connect-type">
+                                <option value="tcp" selected>TCP</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ipaddress" class="col-form-label">아이피주소:</label>
+                            <input type="text" class="form-control" id="ipaddress" name="ipaddress" value="127.0.0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="port-number" class="col-form-label">포트번호:</label>
+                            <input type="number" class="form-control" id="number" name="number" value="5760">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="connectDrone()">연결하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--ChangeModeModal -->
+    <div class="modal fade" id="changeFlightModeModal" tabindex="-1" aria-labelledby="connectDroneModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="connectDroneModalLabel">비행모드 변경 (현재 : <span id="txtCurrentFlightMode">--</span>)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('LOITER')">LOITER</button>
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('GUIDED')">GUIDED</button>
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('ALT_HOLD')">ALT_HOLD</button>
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('LAND')">LAND</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="connectDrone()">연결하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://map.vworld.kr/js/webglMapInit.js.do?version=2.0&apiKey=CA12EC30-669E-3201-A16A-C4CE25CE2572"></script>
+    <script type="text/javascript" src="https://cesium.com/downloads/cesiumjs/releases/1.82/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+    <script>
+        const dronekitAPI = "http://cleanjb.iptime.org:8000/";
+        let map3d;
+
+        let dronePosition = {
+            "longitude": 0,
+            "latitude": 0,
+            "altitude": 0,
+            "sea_level_altitude": 0,
+            "roll": 0,
+            "pitch": 0,
+            "yaw": 0,
+            'armed': 0,
+            'speed': 0,
+            'battery': 0,
+            'mode': "--",
+        };
+
+        let connectDroneModal = null;
+        let changeFlightModeModal = null;
+        const droneCheckInterval = 100;
+        let viewer = null
+
+        function vwmap() {
+            var controlDensity = "vw.DensityType.BASIC";
+            var interactionDensity = "vw.DensityType.BASIC";
+
+            var mapOptions = new vw.MapOptions(
+                vw.BasemapType.GRAPHIC,
+                "",
+                eval(controlDensity),
+                eval(interactionDensity),
+                false,
+                new vw.CameraPosition(
+                    new vw.CoordZ(126.609375, 37.519120, 1548),
+                    new vw.Direction(-90, 0, 0)
+                ),
+                new vw.CameraPosition(
+                    new vw.CoordZ(126.609375, 37.519120, 1548),
+                    new vw.Direction(0, -90, 0)
+                )
+            );
+
+            map3d = new vw.Map("vmap", mapOptions);
+
+            viewer = ws3d.viewer;
+
+            // var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+            // handler.setInputAction(function(click) {
+            //     var ray = viewer.camera.getPickRay(click.position);
+            //     var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+
+            //     if (cartesian) {
+            //         var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            //         var longitude = Cesium.Math.toDegrees(cartographic.longitude);
+            //         var latitude = Cesium.Math.toDegrees(cartographic.latitude);
+            //         var height = cartographic.height;
+
+            //         //기둥 Entity 추가
+            //         viewer.entities.add({
+            //             position: Cesium.Cartesian3.fromDegrees(longitude, latitude),
+            //             cylinder: {
+            //                 length: 30.0 + height, // 높이 10m
+            //                 topRadius: 0.5, // 상단 반경
+            //                 bottomRadius: 0.5, // 하단 반경
+            //                 material: Cesium.Color.RED // 색상
+            //             }
+            //         });
+            //     }
+            // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        }
+
+        function showConnnetDrone() {
+            connectDroneModal = new bootstrap.Modal(document.getElementById('connectDroneModal'), {
+                keyboard: false
+            });
+            connectDroneModal.show();
+        }
+
+        function connectDrone() {
+            var connectType = document.formConnectInfo['connect-type'].value;
+            var ipaddress = document.formConnectInfo['ipaddress'].value;
+            var port = document.formConnectInfo['number'].value;
+
+            fetch(dronekitAPI + "connect_drone", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    "connection_string": connectType + ":" + ipaddress + ":" + port,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("Success:", data);
+                    alert("드론이 연결되었습니다.");
+                    connectDroneModal.hide();
+                    getDronePositionLoop();
+                    getDroneStatusLoop();
+                    setTimeout(zoomToDrone, 500);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+
+        let drone = null;
+
+        function viewDrone(lat, lng, alt) {
+            // 3D 드론 모델의 URL 설정
+            var droneModelUrl = './scene.gltf'; // 여기서 모델 경로를 설정하세요.
+
+            if (drone != null) {
+                let position = Cesium.Cartesian3.fromDegrees(dronePosition.longitude, dronePosition.latitude, dronePosition.altitude+9);
+                let heading = Cesium.Math.toRadians(dronePosition.yaw-90);
+                let pitch = Cesium.Math.toRadians(dronePosition.pitch);
+                let roll = dronePosition.roll; // 롤 없음
+                var hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+                var orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+                drone.position = position;
+                drone.orientation = orientation;
+
+            } else {
+                drone = ws3d.viewer.entities.add({
+                    name: 'Drone',
+                    position: Cesium.Cartesian3.fromDegrees(dronePosition.longitude, dronePosition.latitude, dronePosition.altitude+10), // 드론의 초기 위치 (경도, 위도, 높이)
+                    model: {
+                        uri: droneModelUrl,
+                        scale: 0.01
+                    }
+                });
+            }
+        }
+
+
+        //드론의 현재 위치를 가져옵니다.
+        function getDronePosition() {
+            fetch(dronekitAPI + "current_location", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    dronePosition.longitude = data['longitude'];
+                    dronePosition.latitude = data['latitude'];
+                    dronePosition.altitude = data['altitude'];
+                    dronePosition.sea_level_altitude = data['sea_level_altitude'];
+                    dronePosition.roll = data['roll'];
+                    dronePosition.pitch = data['pitch'];
+                    dronePosition.armed = data['armed'];
+                    let yaw = data['yaw'];
+                    if (yaw < 0) {
+                        yaw = 360 + yaw;
+                    } 
+                    dronePosition.yaw = yaw;
+                    viewDrone();
+                    if(data.armed == 0) {
+                        let btn = document.getElementById("btnArmTakeoff");
+                        btn.innerHTML = "시동걸기";
+                        btn.onclick = arm;
+                    } else {
+                        if (data.altitude < 1) {
+                            let btn = document.getElementById("btnArmTakeoff");
+                            btn.innerHTML = "이륙";
+                            btn.onclick = takeoff;
+                        } else {
+                            let btn = document.getElementById("btnArmTakeoff");
+                            btn.innerHTML = "착륙";
+                            btn.onclick = () => {
+                                changeFlightMode('LAND');
+                            }
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+
+        //드론의 현재 상태를 가져옵니다.
+        function getDroneStatus() {
+            fetch(dronekitAPI + "drone_status", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    dronePosition.speed = data['Speed'];
+                    dronePosition.battery = data['Battery'];
+                    dronePosition.mode = data['Mode'];
+                    viewDroneStatus();
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+
+        function viewDroneStatus() {
+            let altitudeTxt = document.getElementById("altitudeTxt");
+            let seaLevelAltitudeTxt = document.getElementById("seaLevelAltitudeTxt");
+            let yawTxt = document.getElementById("yawTxt");
+            let speedTxt = document.getElementById("speedTxt");
+            let batteryTxt = document.getElementById("batteryTxt");
+            let modeTxt = document.getElementById("modeTxt");
+            let txtCurrentFlightMode = document.getElementById("txtCurrentFlightMode");
+
+            let batteryInfo = dronePosition.battery;
+            let voltage = batteryInfo.split(",")[0];
+            voltage = voltage.split("=")[1];
+
+            altitudeTxt.innerHTML = dronePosition.altitude;
+            seaLevelAltitudeTxt.innerHTML = dronePosition.sea_level_altitude;
+            yawTxt.innerHTML = Math.floor(dronePosition.yaw);
+            speedTxt.innerHTML = parseFloat(dronePosition.speed).toFixed(2);
+            batteryTxt.innerHTML = voltage;
+            modeTxt.innerHTML = dronePosition.mode;
+            txtCurrentFlightMode.innerHTML = dronePosition.mode;
+        }
+
+        function getDronePositionLoop() {
+            setInterval(getDronePosition, droneCheckInterval);
+        }
+
+        function getDroneStatusLoop() {
+            setInterval(getDroneStatus, droneCheckInterval);
+        }
+
+        function zoomToDrone() {
+            // 카메라를 드론 모델에 포커스
+            // Heading, Pitch, Range를 사용하여 카메라 조정
+            var heading = Cesium.Math.toRadians(dronePosition.yaw);
+            var pitch = Cesium.Math.toRadians(-10);
+            var range = 5;
+            ws3d.viewer.zoomTo(drone, new Cesium.HeadingPitchRange(heading, pitch, range));
+        }
+
+        function arm() {
+            // 드론 시동걸기
+            fetch(dronekitAPI + "arm_drone", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+            .then((response) => {
+                if (response.status === 400) {
+                    // 400 상태 코드일 때 처리
+                    return response.text().then(text => {
+                        // 서버에서 전송한 메시지를 alert로 표시
+                        alert(`Error 400: ${text}`);
+                        throw new Error(`Error 400: ${text}`); // 에러를 throw하여 catch 블록으로 전달
+                    });
+                }
+                return response.json(); // 정상 응답일 경우 JSON으로 변환
+            })
+            .then((data) => {
+                console.log("Success:", data);
+                let btn = document.getElementById("btnArmTakeoff");
+                btn.innerHTML = "이륙";
+                btn.onclick = takeoff;
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+        }
+
+        function takeoff() {
+            // 드론 이륙하기
+            let target_altitude = "10";
+
+            fetch(dronekitAPI + "takeoff", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    "target_altitude": target_altitude, // 이륙 고도
+                 })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('서버 에러: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('이륙 완료:', data);
+            })
+            .catch(error => {
+                console.error('에러 발생:', error);
+                alert('오류: ' + error.message);
+            });
+        }
+
+        function showChangeFlightmodeModal() {
+            changeFlightModeModal = new bootstrap.Modal(document.getElementById('changeFlightModeModal'), {
+                keyboard: false
+            });
+            changeFlightModeModal.show();
+        }
+
+        function changeFlightMode(newMode) {
+            // 비행모드 변경
+            fetch(dronekitAPI + "change_mode", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    "new_mode": newMode,
+                 })
+            })
+            .then((response) => {
+                if (response.status === 400) {
+                    // 400 상태 코드일 때 처리
+                    return response.text().then(text => {
+                        // 서버에서 전송한 메시지를 alert로 표시
+                        alert(`Error 400: ${text}`);
+                        throw new Error(`Error 400: ${text}`); // 에러를 throw하여 catch 블록으로 전달
+                    });
+                }
+                return response.json(); // 정상 응답일 경우 JSON으로 변환
+            })
+            .then((data) => {
+                console.log("Success:", data);
+                changeFlightModeModal.hide();
+                alert("비행모드 변경 완료");
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
+        }
+    </script>
+</body>
+
+</html>
