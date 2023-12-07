@@ -171,6 +171,8 @@ async def goto_location(location: GotoLocation):
 
     if vehicle.mode.name != "GUIDED":
         raise HTTPException(status_code=400, detail="드론이 GUIDED 모드가 아닙니다.")
+    
+    vehicle.groundspeed = 10;
 
     # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
     current_location = vehicle.location.global_relative_frame
