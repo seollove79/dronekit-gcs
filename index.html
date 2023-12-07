@@ -291,7 +291,7 @@
                     var height = cartographic.height;
 
                     var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
-                    var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
+                    var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + dronePosition.altitude);
 
 
                     var popup1 = document.getElementById('popup1');
@@ -319,7 +319,7 @@
                             color: Cesium.Color.YELLOW,
                         }});
 
-                        fetch(dronekitAPI + "goto_point", {
+                        fetch(dronekitAPI + "goto_location", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
@@ -327,7 +327,7 @@
                             body: JSON.stringify({
                                 "longitude": longitude,
                                 "latitude": latitude,
-                                "altitude": dronePosition.altitude,
+                                "altitude": height + dronePosition.altitude,
                             }),
                         })
                         .then((response) => response.json())
