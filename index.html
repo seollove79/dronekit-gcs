@@ -293,6 +293,8 @@
                     var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
                     var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + dronePosition.altitude);
 
+                    console.log(point2);
+
 
                     var popup1 = document.getElementById('popup1');
                     popup1.style.display = 'block';
@@ -319,25 +321,25 @@
                             color: Cesium.Color.YELLOW,
                         }});
 
-                        fetch(dronekitAPI + "goto_location", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                "longitude": longitude,
-                                "latitude": latitude,
-                                "altitude": height + dronePosition.altitude,
-                            }),
-                        })
-                        .then((response) => response.json())
-                        .then((data) => {
-                            console.log("Success:", data);
-                            popup1.style.display = 'none';
-                        })
-                        .catch((error) => {
-                            console.error("Error:", error);
-                        });
+                        // fetch(dronekitAPI + "goto_location", {
+                        //     method: "POST",
+                        //     headers: {
+                        //         "Content-Type": "application/json",
+                        //     },
+                        //     body: JSON.stringify({
+                        //         "longitude": longitude,
+                        //         "latitude": latitude,
+                        //         "altitude": height + dronePosition.altitude,
+                        //     }),
+                        // })
+                        // .then((response) => response.json())
+                        // .then((data) => {
+                        //     console.log("Success:", data);
+                        //     popup1.style.display = 'none';
+                        // })
+                        // .catch((error) => {
+                        //     console.error("Error:", error);
+                        // });
                     }
 
                     
