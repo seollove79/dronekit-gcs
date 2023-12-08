@@ -246,40 +246,6 @@
             viewer = ws3d.viewer;
 
             var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-            // handler.setInputAction(function(click) {
-            //     var ray = viewer.camera.getPickRay(click.position);
-            //     var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
-
-            //     if (cartesian) {
-            //         var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-            //         var longitude = Cesium.Math.toDegrees(cartographic.longitude);
-            //         var latitude = Cesium.Math.toDegrees(cartographic.latitude);
-            //         var height = cartographic.height;
-
-            //         console.log("height : " + height);
-
-            //         var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
-            //         var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
-
-            //         // 선 그리기
-            //         viewer.entities.add({
-            //             polyline : {
-            //                 positions : [point1, point2],
-            //                 width : 5,
-            //                 material : Cesium.Color.RED
-            //             }
-            //         });
-
-            //         viewer.entities.add({
-            //         position: point2,
-            //         point: {
-            //             pixelSize: 30,
-            //             color: Cesium.Color.YELLOW,
-            //         }});
-            //     }
-            // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-
             handler.setInputAction(function(click) {
                 var ray = viewer.camera.getPickRay(click.position);
                 var cartesian = viewer.scene.globe.pick(ray, viewer.scene);
@@ -345,88 +311,6 @@
                     
                 }
             }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
-
-            // handler.setInputAction(function (movement) {
-            //     var cartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
-
-            //     if (cartesian) {
-            //         var cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-            //         var longitude = Cesium.Math.toDegrees(cartographic.longitude);
-            //         var latitude = Cesium.Math.toDegrees(cartographic.latitude);
-            //         var height = cartographic.height;
-
-
-            //         var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
-            //         var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
-
-            //         // 선 그리기
-            //         viewer.entities.add({
-            //             polyline : {
-            //                 positions : [point1, point2],
-            //                 width : 5,
-            //                 material : Cesium.Color.RED
-            //             }
-            //         });
-
-            //         viewer.entities.add({
-            //         position: point2,
-            //         point: {
-            //             pixelSize: 30,
-            //             color: Cesium.Color.YELLOW,
-            //         }});
-
-            //         var popup1 = document.getElementById('popup1');
-
-            //         console.log("test");
-
-            //         popup1.style.display = 'block';
-            //         popup1.style.position = 'absolute';
-            //         popup1.style.bottom = viewer.canvas.clientHeight - movement.position.y + 'px';
-            //         popup1.style.left = movement.position.x + 'px';
-
-            //         let btnGotoPoint = document.getElementById("btnGotoPoint");
-            //         btnGotoPoint.onclick = () => {
-            //             var point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
-            //             var point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + 10);
-
-            //             // 선 그리기
-            //             viewer.entities.add({
-            //                 polyline : {
-            //                     positions : [point1, point2],
-            //                     width : 5,
-            //                     material : Cesium.Color.RED
-            //                 }
-            //             });
-
-            //             viewer.entities.add({
-            //             position: point2,
-            //             point: {
-            //                 pixelSize: 30,
-            //                 color: Cesium.Color.YELLOW,
-            //             }});
-            //             // fetch(dronekitAPI + "goto_point", {
-            //             //     method: "POST",
-            //             //     headers: {
-            //             //         "Content-Type": "application/json",
-            //             //     },
-            //             //     body: JSON.stringify({
-            //             //         "longitude": longitude,
-            //             //         "latitude": latitude,
-            //             //         "altitude": dronePosition.altitude,
-            //             //     }),
-            //             // })
-            //             //     .then((response) => response.json())
-            //             //     .then((data) => {
-            //             //         console.log("Success:", data);
-            //             //         popup1.style.display = 'none';
-            //             //     })
-            //             //     .catch((error) => {
-            //             //         console.error("Error:", error);
-            //             //     });
-            //         }
-            //     }
-            // }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
-
         }
 
         function showConnnetDrone() {
