@@ -231,6 +231,7 @@
         function vwmap() {
             let controlDensity = "vw.DensityType.BASIC";
             let interactionDensity = "vw.DensityType.BASIC";
+            let popup1 = document.getElementById('popup1');
 
             let mapOptions = new vw.MapOptions(
                 vw.BasemapType.GRAPHIC,
@@ -250,6 +251,7 @@
 
             map3d = new vw.Map("vmap", mapOptions);
             viewer = ws3d.viewer;
+            
 
             let handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
             handler.setInputAction(function(click) {
@@ -265,7 +267,6 @@
                     let point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
                     let point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + GUIDED_POSITION_HEIGHT);
 
-                    let popup1 = document.getElementById('popup1');
                     popup1.style.display = 'block';
                     popup1.style.position = 'absolute';
                     popup1.style.bottom = viewer.canvas.clientHeight - click.position.y + 'px';
@@ -320,6 +321,11 @@
                     
                 }
             }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+
+            handler.setInputAction(function(click) {
+                popup1.style.display = 'none';
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
             
         }
