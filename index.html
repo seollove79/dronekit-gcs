@@ -15,8 +15,7 @@
         }
 
         .button-container {
-            padding:10px;
-            width:500px;
+            padding:10px 20px 10px 20px;
             background-color: #393939;
             border-radius: 20px;
             position: absolute;
@@ -83,7 +82,8 @@
             <button type="button" class="btn btn-primary btn-lg" id="btnArmTakeoff" onclick="arm()">시동걸기</button>
             <button type="button" class="btn btn-primary btn-lg" onclick="showChangeFlightmodeModal()">비행모드변경</button>
             <button type="button" class="btn btn-primary btn-lg" onclick="zoomToDrone()">ZOOM</button>
-            <button type="button" class="btn btn-primary btn-lg" onclick="zoomToDrone()">비행계획</button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="makePlan()">비행계획</button>
+            <input type="number" class="form-control" id="waypointAltitude" placeholder="WAYPOINT 고도" style="width:300px;display:none">
         </div>
     </div>
 
@@ -226,13 +226,27 @@
         let changeFlightModeModal = null;
         let viewer = null
         let rightMouseClickPosition = null;
-        let guidedPositionLine = null;
-        let guidePositionMarker = null;
+
+        let entityManager = {
+            "guidedPositionLine": null,
+            "guidedPositionMarker": null,
+            "waypointLine": [],
+            "waypointMarker": [],
+        }
+
+        let wayPointCoodinate3D = [];
+
+        let popupManager = {
+            "popup1": null,
+        }
+        
+        let planningMode = false;
+        let waypointAltitude = 0;
 
         function vwmap() {
             let controlDensity = "vw.DensityType.BASIC";
             let interactionDensity = "vw.DensityType.BASIC";
-            let popup1 = document.getElementById('popup1');
+            popupManager.popup1 = document.getElementById('popup1');
 
             let mapOptions = new vw.MapOptions(
                 vw.BasemapType.GRAPHIC,
@@ -268,34 +282,34 @@
                     let point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
                     let point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + GUIDED_POSITION_HEIGHT);
 
-                    popup1.style.display = 'block';
-                    popup1.style.position = 'absolute';
-                    popup1.style.bottom = viewer.canvas.clientHeight - click.position.y + 'px';
-                    popup1.style.left = click.position.x + 'px';
+                    popupManager.popup1.style.display = 'block';
+                    popupManager.popup1.style.position = 'absolute';
+                    popupManager.popup1.style.bottom = viewer.canvas.clientHeight - click.position.y + 'px';
+                    popupManager.popup1.style.left = click.position.x + 'px';
 
                     let btnGotoPoint = document.getElementById("btnGotoPoint");
 
                     btnGotoPoint.onclick = () => {
 
-                        if (guidedPositionLine != null) {
-                            viewer.entities.remove(guidedPositionLine);
-                            viewer.entities.remove(guidePositionMarker);
+                        if (entityManager.guidedPositionLine != null) {
+                            viewer.entities.remove(entityManager.guidedPositionLine);
+                            viewer.entities.remove(entityManager.guidedPositionMarker);
                         }
 
                         // 선 그리기
-                        guidedPositionLine = viewer.entities.add({
+                        entityManager.guidedPositionLine = viewer.entities.add({
                             polyline : {
                                 positions : [point1, point2],
-                                width : 5,
+                                width : 2,
                                 color : Cesium.Color.RED
                             }
                         });
 
-                        guidePositionMarker = viewer.entities.add({
+                        entityManager.guidedPositionMarker = viewer.entities.add({
                         position: point2,
                         point: {
-                            pixelSize: 20,
-                            color: Cesium.Color.YELLOW,
+                            pixelSize: 15,
+                            color: Cesium.Color.GREEN,
                         }});
 
                         fetch(DRONEKIT_API + "goto_location", {
@@ -312,7 +326,7 @@
                         .then((response) => response.json())
                         .then((data) => {
                             console.log("Success:", data);
-                            popup1.style.display = 'none';
+                            popupManager.popup1.style.display = 'none';
                         })
                         .catch((error) => {
                             console.error("Error:", error);
@@ -324,12 +338,72 @@
             }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
 
 
+            // 마커 위치를 저장할 배열
             handler.setInputAction(function(click) {
-                popup1.style.display = 'none';
+                popupManager.popup1.style.display = 'none';
+                if(planningMode) {
+                    if (document.getElementById("waypointAltitude").value == "") {
+                        alert("WAYPOINT 고도를 입력해주세요.");
+                        return;
+                    } else {
+                        if (document.getElementById("waypointAltitude").value < 0) {
+                            alert("WAYPOINT 고도는 0 이상이어야 합니다.");
+                            return;
+                        }
+                        waypointAltitude = document.getElementById("waypointAltitude").value;
+                    }
+                    let ray = viewer.camera.getPickRay(click.position);
+                    let cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+
+                    if (cartesian) {
+                        let cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                        let longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                        let latitude = Cesium.Math.toDegrees(cartographic.latitude);
+                        let height = cartographic.height;
+
+                        let point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+                        let point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + parseFloat(waypointAltitude));
+
+                        // 선과 마커 그리기
+                        let waypointLine = viewer.entities.add({
+                            polyline: {
+                                positions: [point1, point2],
+                                width: 2,
+                                material: Cesium.Color.RED
+                            }
+                        });
+
+                        let waypointMarker = viewer.entities.add({
+                            position: point2,
+                            point: {
+                                pixelSize: 15,
+                                color: Cesium.Color.GREEN,
+                            }
+                        });
+
+                        entityManager.waypointLine.push(waypointLine);
+                        entityManager.waypointMarker.push(waypointMarker);
+                        wayPointCoodinate3D.push(point2);
+
+                        // 점선으로 마커 연결
+                        if (wayPointCoodinate3D.length > 1) {
+                            viewer.entities.add({
+                                polyline: {
+                                    positions: wayPointCoodinate3D,
+                                    width: 2,
+                                    material: new Cesium.PolylineDashMaterialProperty({
+                                        color: Cesium.Color.YELLOW
+                                    })
+                                }
+                            });
+                        }
+                    }
+                }
             }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-            
         }
+
+        
 
         function showConnnetDrone() {
             connectDroneModal = new bootstrap.Modal(document.getElementById('connectDroneModal'), {
@@ -586,6 +660,16 @@
             .catch((error) => {
                 console.error("Error:", error);
             });
+        }
+
+        function makePlan() {
+            planningMode = planningMode ? false : true;
+            console.log(planningMode);
+            if (planningMode) {
+                document.getElementById("waypointAltitude").style.display = "block";
+            } else {
+                document.getElementById("waypointAltitude").style.display = "none";
+            }
         }
     </script>
 </body>
