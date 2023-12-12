@@ -84,6 +84,7 @@
             <button type="button" class="btn btn-primary btn-lg" onclick="zoomToDrone()">ZOOM</button>
             <button type="button" class="btn btn-primary btn-lg" onclick="makePlan()">비행계획</button>
             <input type="number" class="form-control" id="waypointAltitude" placeholder="WAYPOINT 고도" style="width:300px;display:none">
+            <button type="button" class="btn btn-primary btn-lg" onclick="sendPlan()">비행계획전송</button>
         </div>
     </div>
 
@@ -235,6 +236,7 @@
         }
 
         let wayPointCoodinate3D = [];
+        let wayPointCoodinateLatLngAlt = [];
 
         let popupManager = {
             "popup1": null,
@@ -309,7 +311,7 @@
                         position: point2,
                         point: {
                             pixelSize: 15,
-                            color: Cesium.Color.GREEN,
+                            color: Cesium.Color.YELLOW,
                         }});
 
                         fetch(DRONEKIT_API + "goto_location", {
@@ -373,12 +375,18 @@
                         point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
                         point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + parseFloat(waypointAltitude));
 
+                        wayPointCoodinateLatLngAlt.push({
+                            "latitude": latitude,
+                            "longitude": longitude,
+                            "altitude": height + parseFloat(waypointAltitude),
+                        });
+
                         // 선과 마커 그리기
                         let waypointLine = viewer.entities.add({
                             polyline: {
                                 positions: [point1, point2],
                                 width: 2,
-                                material: Cesium.Color.RED
+                                material: Cesium.Color.LIGHTSKYBLUE
                             }
                         });
 
@@ -402,7 +410,7 @@
                                         positions: [wayPointCoodinate3D[i], wayPointCoodinate3D[i + 1]],
                                         width: 2,
                                         material: new Cesium.PolylineDashMaterialProperty({
-                                            color: Cesium.Color.RED
+                                            color: Cesium.Color.LIGHTSKYBLUE
                                         })
                                     }
                                 });
@@ -681,6 +689,35 @@
                 document.getElementById("waypointAltitude").style.display = "none";
                 wayPointCoodinate3D = [];
             }
+        }
+
+        function sendPlan() {
+            console.log(wayPointCoodinate3D[0].latitude);
+            fetch(DRONEKIT_API + "upload_mission", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    "waypoint": wayPointCoodinateLatLngAlt,
+                 })
+            })
+            .then((response) => {
+                if (response.status === 400) {
+                    return response.text().then(text => {
+                        alert(`Error 400: ${text}`);
+                        throw new Error(`Error 400: ${text}`); // 에러를 throw하여 catch 블록으로 전달
+                    });
+                }
+                return response.json();
+            })
+            .then((data) => {
+                console.log("Success:", data);
+                alert("비행계획 전송 완료");
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+            });
         }
     </script>
 </body>

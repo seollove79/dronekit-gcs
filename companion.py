@@ -210,7 +210,7 @@ async def upload_mission(waypoint_list: WaypointList):
     # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
     for waypoint in waypoint_list.waypoints:
         cmds.add(Command(0, 0, 0, 3, 16, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude, True, 0, 0, 0, 0))
-        Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
+        #Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
 
     cmds.upload()  # 기체에 웨이포인트 리스트 전송
     return {"status": "웨이포인트 업로드 완료"}
