@@ -337,9 +337,18 @@
                 }
             }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
 
-
             // 마커 위치를 저장할 배열
             handler.setInputAction(function(click) {
+                let ray = null;
+                let cartesian = null;
+                let cartographic = null;
+                let longitude = null;
+                let latitude = null;
+                let height = null;
+                let point1 = null;
+                let point2 = null;
+                let polyline = null;
+
                 popupManager.popup1.style.display = 'none';
                 if(planningMode) {
                     if (document.getElementById("waypointAltitude").value == "") {
@@ -352,17 +361,17 @@
                         }
                         waypointAltitude = document.getElementById("waypointAltitude").value;
                     }
-                    let ray = viewer.camera.getPickRay(click.position);
-                    let cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+                    ray = viewer.camera.getPickRay(click.position);
+                    cartesian = viewer.scene.globe.pick(ray, viewer.scene);
 
                     if (cartesian) {
-                        let cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-                        let longitude = Cesium.Math.toDegrees(cartographic.longitude);
-                        let latitude = Cesium.Math.toDegrees(cartographic.latitude);
-                        let height = cartographic.height;
+                        cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+                        longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                        latitude = Cesium.Math.toDegrees(cartographic.latitude);
 
-                        let point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
-                        let point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + parseFloat(waypointAltitude));
+                        height = cartographic.height;
+                        point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
+                        point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + parseFloat(waypointAltitude));
 
                         // 선과 마커 그리기
                         let waypointLine = viewer.entities.add({
@@ -385,17 +394,19 @@
                         entityManager.waypointMarker.push(waypointMarker);
                         wayPointCoodinate3D.push(point2);
 
-                        // 점선으로 마커 연결
+                        //점선으로 마커 연결
                         if (wayPointCoodinate3D.length > 1) {
-                            viewer.entities.add({
-                                polyline: {
-                                    positions: wayPointCoodinate3D,
-                                    width: 2,
-                                    material: new Cesium.PolylineDashMaterialProperty({
-                                        color: Cesium.Color.YELLOW
-                                    })
-                                }
-                            });
+                            for (let i = 0; i < wayPointCoodinate3D.length - 1; i++) {
+                                polyline = viewer.entities.add({
+                                    polyline: {
+                                        positions: [wayPointCoodinate3D[i], wayPointCoodinate3D[i + 1]],
+                                        width: 2,
+                                        material: new Cesium.PolylineDashMaterialProperty({
+                                            color: Cesium.Color.RED
+                                        })
+                                    }
+                                });
+                            }
                         }
                     }
                 }
@@ -664,11 +675,11 @@
 
         function makePlan() {
             planningMode = planningMode ? false : true;
-            console.log(planningMode);
             if (planningMode) {
                 document.getElementById("waypointAltitude").style.display = "block";
             } else {
                 document.getElementById("waypointAltitude").style.display = "none";
+                wayPointCoodinate3D = [];
             }
         }
     </script>
