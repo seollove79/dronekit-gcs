@@ -170,6 +170,7 @@
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('GUIDED')">GUIDED</button>
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('ALT_HOLD')">ALT_HOLD</button>
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('LAND')">LAND</button>
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('AUTO')">LAND</button>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -692,7 +693,7 @@
         }
 
         function sendPlan() {
-            console.log(wayPointCoodinate3D[0].latitude);
+            console.log(wayPointCoodinateLatLngAlt);
             fetch(DRONEKIT_API + "upload_mission", {
                 method: "POST",
                 headers: {

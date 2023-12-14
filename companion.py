@@ -197,10 +197,12 @@ async def goto_location(location: GotoLocation):
 
 @app.post("/upload_mission")
 async def upload_mission(waypoint_list: WaypointList):
+    print(waypoint_list)
+
+
     global vehicle
     if vehicle is None:
         raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
-    
 
     cmds = vehicle.commands
     cmds.clear()
