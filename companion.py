@@ -196,24 +196,23 @@ async def goto_location(location: GotoLocation):
 
 @app.post("/upload_mission")
 async def upload_mission(waypoint_list: WaypointList):
-    print("test")
-    # global vehicle
-    # if vehicle is None:
-    #     raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
+    global vehicle
+    if vehicle is None:
+        raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
     
 
-    # cmds = vehicle.commands
-    # cmds.clear()
+    cmds = vehicle.commands
+    cmds.clear()
 
-    # # 시작점을 웨이포인트로 추가
-    # home = vehicle.location.global_relative_frame
-    # cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
+    # 시작점을 웨이포인트로 추가
+    home = vehicle.location.global_relative_frame
+    cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
 
-    # # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
-    # for waypoint in waypoint_list.waypoints:
-    #     cmds.add(Command(0, 0, 0, 3, 16, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude, True, 0, 0, 0, 0))
-    #     print (waypoint.latitude, waypoint.longitude, waypoint.altitude)
-    #     #Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
+    # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
+    for waypoint in waypoint_list.waypoints:
+        cmds.add(Command(0, 0, 0, 3, 16, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude, True, 0, 0, 0, 0))
+        print (waypoint.latitude, waypoint.longitude, waypoint.altitude)
+        #Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
 
-    # cmds.upload()  # 기체에 웨이포인트 리스트 전송
-    return {"status": "웨이포인트 업로드 완료11"}
+    cmds.upload()  # 기체에 웨이포인트 리스트 전송
+    return {"status": "웨이포인트 업로드 완료"}
