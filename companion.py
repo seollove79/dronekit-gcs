@@ -201,15 +201,15 @@ async def upload_mission(waypoint_list: WaypointList):
 
     cmds = vehicle.commands
     cmds.clear()
+    await cmds.upload()  # 기체에 변경사항 적용을 위해 업로드
 
-    # 시작점을 웨이포인트로 추가
-    home = vehicle.location.global_relative_frame
-    #cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
+    # 기체가 기존 명령을 지우고 새 명령을 받을 준비가 될 때까지 기다립니다.
+    # 필요에 따라 sleep 시간을 조정할 수 있습니다.
+    time.sleep(2)
 
     # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
     for waypoint in waypoint_list.waypoints:
         cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
-        #Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
 
-    cmds.upload()  # 기체에 웨이포인트 리스트 전송
+    await cmds.upload()  # 기체에 웨이포인트 리스트 전송
     return {"status": "웨이포인트 업로드 완료"}

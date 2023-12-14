@@ -170,7 +170,7 @@
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('GUIDED')">GUIDED</button>
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('ALT_HOLD')">ALT_HOLD</button>
                         <button class="btn btn-lg btn-primary" onclick="changeFlightMode('LAND')">LAND</button>
-                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('AUTO')">LAND</button>
+                        <button class="btn btn-lg btn-primary" onclick="changeFlightMode('AUTO')">AUTO</button>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -376,10 +376,12 @@
                         point1 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height);
                         point2 = Cesium.Cartesian3.fromDegrees(longitude, latitude, height + parseFloat(waypointAltitude));
 
+                        console.log(height + parseFloat(waypointAltitude));
+
                         wayPointCoodinateLatLngAlt.push({
                             "latitude": latitude,
                             "longitude": longitude,
-                            "altitude": height + parseFloat(waypointAltitude),
+                            "altitude": height,
                         });
 
                         // 선과 마커 그리기
@@ -450,8 +452,8 @@
                 .then((data) => {
                     connectDroneModal.hide();
                     alert("드론이 연결되었습니다.");
-                    // getDronePositionLoop();
-                    // getDroneStatusLoop();
+                    getDronePositionLoop();
+                    getDroneStatusLoop();
                     setTimeout(zoomToDrone, 500);
                 })
                 .catch((error) => {
