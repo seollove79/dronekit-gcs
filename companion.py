@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException, LocationGlobal
 from typing import List
-from dronekit import command
+from dronekit import Command
 from pymavlink import mavutil
 import time
 import math
