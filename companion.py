@@ -191,15 +191,10 @@ async def goto_location(location: GotoLocation):
 
     # 드론에게 목적지로 이동하도록 명령
     vehicle.simple_goto(target_location)
-
-    
     return {"status": "이동 시작", "target_location": location}
 
 @app.post("/upload_mission")
 async def upload_mission(waypoint_list: WaypointList):
-    print(waypoint_list)
-
-
     global vehicle
     if vehicle is None:
         raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")

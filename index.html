@@ -693,14 +693,17 @@
         }
 
         function sendPlan() {
-            console.log(wayPointCoodinateLatLngAlt);
+            let obj = {
+                waypoint : wayPointCoodinateLatLngAlt,
+            }
+
             fetch(DRONEKIT_API + "upload_mission", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ 
-                    "waypoint": wayPointCoodinateLatLngAlt,
+                    "waypoints": wayPointCoodinateLatLngAlt,
                  })
             })
             .then((response) => {
