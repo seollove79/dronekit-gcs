@@ -206,7 +206,7 @@ async def upload_mission(waypoint_list: WaypointList):
 
     # 시작점을 웨이포인트로 추가
     home = vehicle.location.global_relative_frame
-    cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
+    #cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
 
     # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
     for waypoint in waypoint_list.waypoints:
