@@ -449,8 +449,8 @@
                 .then((data) => {
                     connectDroneModal.hide();
                     alert("드론이 연결되었습니다.");
-                    getDronePositionLoop();
-                    getDroneStatusLoop();
+                    // getDronePositionLoop();
+                    // getDroneStatusLoop();
                     setTimeout(zoomToDrone, 500);
                 })
                 .catch((error) => {
