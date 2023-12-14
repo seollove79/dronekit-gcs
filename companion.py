@@ -199,6 +199,8 @@ async def upload_mission(waypoint_list: WaypointList):
     global vehicle
     if vehicle is None:
         raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
+    
+    print("업로드 시작")
 
     cmds = vehicle.commands
     cmds.clear()
