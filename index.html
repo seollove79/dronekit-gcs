@@ -85,6 +85,7 @@
             <button type="button" class="btn btn-primary btn-lg" onclick="makePlan()">비행계획</button>
             <input type="number" class="form-control" id="waypointAltitude" placeholder="WAYPOINT 고도" style="width:300px;display:none">
             <button type="button" class="btn btn-primary btn-lg" onclick="sendPlan()">비행계획전송</button>
+            <button type="button" class="btn btn-primary btn-lg" onclick="changeView()">test</button>
         </div>
     </div>
 
@@ -473,7 +474,7 @@
                 drone.orientation = orientation;
 
             } else {
-                drone = ws3d.viewer.entities.add({
+                drone = viewer.entities.add({
                     name: 'Drone',
                     position: Cesium.Cartesian3.fromDegrees(dronePosition.longitude, dronePosition.latitude, dronePosition.sea_level_altitude + DRONE_ALTITUDE_OFFSET), // 드론의 초기 위치 (경도, 위도, 높이)
                     model: {
@@ -587,7 +588,7 @@
             let heading = Cesium.Math.toRadians(dronePosition.yaw);
             let pitch = Cesium.Math.toRadians(-10);
             let range = 5;
-            ws3d.viewer.zoomTo(drone, new Cesium.HeadingPitchRange(heading, pitch, range));
+            viewer.zoomTo(drone, new Cesium.HeadingPitchRange(heading, pitch, range));
         }
 
         function arm() {
@@ -723,6 +724,12 @@
             })
             .catch((error) => {
                 console.error("Error:", error);
+            });
+        }
+
+        function changeView() {
+            viewer.camera.setView({
+                destination : Cesium.Cartesian3.fromDegrees(dronePosition.longitude, dronePosition.latitude, dronePosition.altitude)
             });
         }
     </script>
