@@ -52,7 +52,8 @@ async def connect_drone(connection_info: ConnectionInfo):
         return {"status": "Already Connected", "details": str(vehicle)}
 
     try:
-        vehicle = connect(connection_info.connection_string, wait_ready=True)
+        #vehicle = connect(connection_info.connection_string, wait_ready=True)
+        vehicle = connect(connection_info.connection_string, wait_ready='parameters')
         return {"status": "Connected", "details": str(vehicle)}
     except APIException as e:
         raise HTTPException(status_code=500, detail=str(e))
