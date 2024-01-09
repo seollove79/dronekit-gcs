@@ -216,3 +216,7 @@ async def upload_mission(waypoint_list: WaypointList):
 
     cmds.upload()  # 기체에 웨이포인트 리스트 전송
     return {"status": "웨이포인트 업로드 완료"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
