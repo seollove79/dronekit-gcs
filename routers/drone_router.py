@@ -1,50 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException, LocationGlobal
-from typing import List
-from dronekit import Command
-from pymavlink import mavutil
-import time
-import math
+from fastapi import APIRouter, HTTPException
+from models import ConnectionInfo, ModeChangeRequest, ModeTargetAltitude, GotoLocation, WaypointList
+from dependencies import get_vehicle
 
-app = FastAPI()
+router = APIRouter()
 
-# CORS 미들웨어 설정
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 특정 오리진을 허용하거나 ["*"]로 모든 오리진 허용
-    allow_credentials=True,
-    allow_methods=["*"],  # 특정 HTTP 메소드를 허용하거나 ["*"]로 모든 메소드 허용
-    allow_headers=["*"],  # 특정 HTTP 헤더를 허용하거나 ["*"]로 모든 헤더 허용
-)
-
-class ConnectionInfo(BaseModel):
-    connection_string: str
-
-class ModeChangeRequest(BaseModel):
-    new_mode: str    
-
-class ModeTargetAltitude(BaseModel):
-    target_altitude: str
-
-class GotoLocation(BaseModel):
-    latitude: float
-    longitude: float
-    altitude: float  # 해발 고도
-
-class Waypoint(BaseModel):
-    latitude: float
-    longitude: float
-    altitude: float
-
-class WaypointList(BaseModel):
-    waypoints: List[Waypoint]
-
-global vehicle
-vehicle = None
-
-@app.post("/connect_drone")
+@router.post("/connect_drone")
 async def connect_drone(connection_info: ConnectionInfo):
     global vehicle
     # 이미 연결된 드론이 있는지 확인
@@ -56,11 +16,10 @@ async def connect_drone(connection_info: ConnectionInfo):
         #vehicle = connect(connection_info.connection_string, wait_ready='parameters')
         return {"status": "Connected", "details": str(vehicle)}
     except APIException as e:
-        #raise HTTPException(status_code=500, detail=str(e))
-        return {"status": "Failed", "details": str(str(e))}
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/disconnect_drone")
+@router.get("/disconnect_drone")
 async def disconnect_drone():
     global vehicle
     if vehicle is not None:
@@ -70,7 +29,7 @@ async def disconnect_drone():
     else:
         return {"status": "No active connection"}
 
-@app.get("/drone_status")
+@router.get("/drone_status")
 async def drone_status():
     if vehicle is not None:
         print(vehicle.home_location)
@@ -85,7 +44,7 @@ async def drone_status():
     else:
         raise HTTPException(status_code=400, detail="No active drone connection")
 
-@app.post("/change_mode")
+@router.post("/change_mode")
 async def change_mode(mode_request: ModeChangeRequest):
     global vehicle
     if vehicle is None:
@@ -104,7 +63,7 @@ async def change_mode(mode_request: ModeChangeRequest):
     except APIException as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/arm_drone")
+@router.post("/arm_drone")
 async def arm_drone():
     global vehicle
     if vehicle is None:
@@ -128,7 +87,7 @@ async def arm_drone():
 
     return {"status": "Armed"}
 
-@app.post("/takeoff")
+@router.post("/takeoff")
 async def takeoff(takeof_info: ModeTargetAltitude):
     global vehicle
     if vehicle is None:
@@ -156,7 +115,7 @@ async def takeoff(takeof_info: ModeTargetAltitude):
 
     # return {"status": "이륙 완료", "current_altitude": vehicle.location.global_relative_frame.alt}
 
-@app.get("/current_location")
+@router.get("/current_location")
 async def current_location():
     global vehicle
     if vehicle is None:
@@ -176,7 +135,7 @@ async def current_location():
         "armed": math.degrees(vehicle.armed)  # 시동여부
     }
 
-@app.post("/goto_location")
+@router.post("/goto_location")
 async def goto_location(location: GotoLocation):
     global vehicle
     if vehicle is None:
@@ -196,7 +155,7 @@ async def goto_location(location: GotoLocation):
 
     return {"status": "이동 시작", "target_location": location}
 
-@app.post("/upload_mission")
+@router.post("/upload_mission")
 async def upload_mission(waypoint_list: WaypointList):
     global vehicle
     if vehicle is None:
@@ -217,7 +176,3 @@ async def upload_mission(waypoint_list: WaypointList):
 
     cmds.upload()  # 기체에 웨이포인트 리스트 전송
     return {"status": "웨이포인트 업로드 완료"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
