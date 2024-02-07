@@ -186,6 +186,21 @@ class Drone:
         cmds.upload()  # 기체에 웨이포인트 리스트 전송
         return {"status": "웨이포인트 업로드 완료"}
     
+    def disarm_drone(self):
+        if self.vehicle is None:
+            raise HTTPException(status_code=400, detail="No active drone connection")
+
+        if self.vehicle.armed:
+            self.vehicle.armed = False
+            # 비활성화가 완료될 때까지 기다림
+            while self.vehicle.armed:
+                print("Disarming...")
+                time.sleep(1)
+            return {"status": "기체 시동을 해제하였습니다."}
+        else:
+            return {"status": "기체의 시동이 이미 해제되어 있습니다."}
+
+    
 
 
 # 드론 인스턴스를 관리하는 딕셔너리
@@ -236,6 +251,14 @@ async def arm_drone(drone_id: str):
         return result
     else:
         return {"status": "Drone not found"}
+    
+@app.get("/disarm_drone/{drone_id}")
+async def disarm_drone(drone_id: str):
+    if drone_id in drones:
+        result = drones[drone_id].disarm_drone()
+        return result
+    else:
+        return {"status": "드론을 확인할수 없습니다."}
 
 @app.post("/takeoff")
 async def takeoff(drone_id: str, takeof_info: TargetAltitude):
