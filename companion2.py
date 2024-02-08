@@ -29,6 +29,14 @@ class ModeChangeRequest(BaseModel):
 class TargetAltitude(BaseModel):
     target_altitude: str
 
+class TakeoffInfo(BaseModel):
+    drone_id: str
+    target_altitude: str
+
+class ChangeModeInfo(BaseModel):
+    drone_id: str
+    new_mode: str
+
 class GotoLocation(BaseModel):
     latitude: float
     longitude: float
@@ -69,7 +77,7 @@ class Drone:
             return {
                 "GPS": str(self.vehicle.gps_0),
                 "Battery": str(self.vehicle.battery),
-                "ekf_ok": str(self.vehicle.ekf_ok),
+                "ekf_ok": self.vehicle.ekf_ok,
                 "Heartbeat": str(self.vehicle.last_heartbeat),
                 "Mode": str(self.vehicle.mode.name),
                 "AirSpeed": str(self.vehicle.airspeed),
@@ -87,22 +95,41 @@ class Drone:
         else:
             raise HTTPException(status_code=400, detail="No active drone connection")
         
-    def change_mode(self, mode_request: ModeChangeRequest):
+    def change_mode(self, change_mode_info: ChangeModeInfo):
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
 
         try:
-            new_mode = VehicleMode(mode_request.new_mode)
+            new_mode = VehicleMode(change_mode_info.new_mode)
             self.vehicle.mode = new_mode
 
             # 모드가 변경될 때까지 기다림
-            while not self.vehicle.mode.name == mode_request.new_mode:
+            while not self.vehicle.mode.name == change_mode_info.new_mode:
                 print("모드 변경을 기다리는 중...")
                 time.sleep(1)
 
-            return {"status": "모드 변경됨", "new_mode": mode_request.new_mode}
+            return {"status": "모드 변경됨", "new_mode": change_mode_info.new_mode}
         except APIException as e:
             raise HTTPException(status_code=500, detail=str(e))
+        
+    def land(self):
+        if self.vehicle is None:
+            raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
+
+        try:
+            new_mode = VehicleMode("LAND")
+            self.vehicle.mode = new_mode
+
+            # 모드가 변경될 때까지 기다림
+            while not self.vehicle.mode.name == "LAND":
+                print("모드 변경을 기다리는 중...")
+                time.sleep(1)
+
+            return {"status": "착륙이 시작되었습니다."}
+        except APIException as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        
+    
         
     def arm_drone(self):
         if self.vehicle is None:
@@ -126,21 +153,24 @@ class Drone:
 
         return {"status": "Armed"}
     
-    def takeoff(self, takeof_info: TargetAltitude):
+    def takeoff(self, takeoff_info: TakeoffInfo):
         if self.vehicle is None:
+            print("No active drone connection")
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
 
         if not self.vehicle.armed:
+            print("Drone is not armed")
             raise HTTPException(status_code=400, detail="드론이 시동되지 않았습니다. 먼저 시동을 걸어주세요.")
 
         if self.vehicle.mode.name != "GUIDED":
+            print("Drone is not in GUIDED mode")
             raise HTTPException(status_code=400, detail="드론이 GUIDED 모드가 아닙니다.")
 
-        print("이륙 중...")
-        target_altitude = float(takeof_info.target_altitude)
+        print("start takeoff...")
+        target_altitude = float(takeoff_info.target_altitude)
         self.vehicle.simple_takeoff(target_altitude)  # 이륙 명령
 
-        return {"status": "이륙 시작"}
+        return {"status": "start takeoff"}
     
     def current_location(self):
         if self.vehicle is None:
@@ -248,13 +278,6 @@ async def drone_status(drone_id: str):
         return {"status": "Drone not found"}
 
 
-@app.post("/change_mode")
-async def change_mode(drone_id: str, mode_request: ModeChangeRequest):
-    if drone_id in drones:
-        result = drones[drone_id].change_mode(mode_request)
-        return result
-    else:
-        return {"status": "Drone not found"}
     
 @app.get("/arm_drone/{drone_id}")
 async def arm_drone(drone_id: str):
@@ -273,12 +296,29 @@ async def disarm_drone(drone_id: str):
         return {"status": "드론을 확인할수 없습니다."}
 
 @app.post("/takeoff")
-async def takeoff(drone_id: str, takeof_info: TargetAltitude):
-    if drone_id in drones:
-        result = drones[drone_id].takeoff(takeof_info)
+async def takeoff(takeoff_info: TakeoffInfo):
+    if takeoff_info.drone_id in drones:
+        result = drones[takeoff_info.drone_id].takeoff(takeoff_info)
         return result
     else:
         return {"status": "Drone not found"}
+    
+@app.post("/change_mode")
+async def change_mode(change_mode_info : ChangeModeInfo):
+    if change_mode_info.drone_id in drones:
+        result = drones[change_mode_info.drone_id].change_mode(change_mode_info)
+        return result
+    else:
+        return {"status": "Drone not found"}
+
+@app.get("/land/{drone_id}")
+async def land(drone_id: str):
+    if drone_id in drones:
+        result = drones[drone_id].land()
+        return result
+    else:
+        return {"status": "Drone not found"}
+
 
 @app.get("/current_location/{drone_id}")
 async def current_location(drone_id: str):
