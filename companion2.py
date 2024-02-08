@@ -64,13 +64,25 @@ class Drone:
 
     def drone_status(self):
         if self.vehicle is not None:
+            current_location = self.vehicle.location.global_relative_frame
+            attitude = self.vehicle.attitude
             return {
                 "GPS": str(self.vehicle.gps_0),
                 "Battery": str(self.vehicle.battery),
+                "ekf_ok": str(self.vehicle.ekf_ok),
                 "Heartbeat": str(self.vehicle.last_heartbeat),
                 "Mode": str(self.vehicle.mode.name),
-                "Speed": str(self.vehicle.groundspeed),
-                "Home": str(self.vehicle.home_location)
+                "AirSpeed": str(self.vehicle.airspeed),
+                "GroundSpeed": str(self.vehicle.groundspeed),
+                "Home": str(self.vehicle.home_location),
+                "Lat": current_location.lat,  # 위도
+                "Lng": current_location.lon,  # 경도
+                "Alt": current_location.alt,  # 상대 고도
+                "SL_Alt": self.vehicle.location.global_frame.alt,  # 해수면 고도
+                "Roll": attitude.roll,  # 롤
+                "Pitch": attitude.pitch,  # 피치
+                "Yaw": math.degrees(attitude.yaw),  # 요
+                "Armed": self.vehicle.armed  # 시동여부
             }
         else:
             raise HTTPException(status_code=400, detail="No active drone connection")
