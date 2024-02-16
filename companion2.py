@@ -23,12 +23,6 @@ class ConnectionInfo(BaseModel):
     connection_string: str
     drone_id: str  # 드론을 구분하는 고유 ID
 
-class ModeChangeRequest(BaseModel):
-    new_mode: str    
-
-class TargetAltitude(BaseModel):
-    target_altitude: str
-
 class TakeoffInfo(BaseModel):
     drone_id: str
     target_altitude: str
@@ -38,6 +32,12 @@ class ChangeModeInfo(BaseModel):
     new_mode: str
 
 class GotoLocation(BaseModel):
+    latitude: float
+    longitude: float
+    altitude: float  # 해발 고도
+
+class GotoLocationInfo(BaseModel):
+    drone_id: str
     latitude: float
     longitude: float
     altitude: float  # 해발 고도
@@ -190,7 +190,7 @@ class Drone:
             "armed": math.degrees(self.vehicle.armed)  # 시동여부
         }
     
-    def goto_location(self, location: GotoLocation):
+    def goto_location(self, goto_location_info: GotoLocationInfo):
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
 
@@ -201,12 +201,12 @@ class Drone:
 
         # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
         current_location = self.vehicle.location.global_relative_frame
-        target_location = LocationGlobal(location.latitude, location.longitude, location.altitude + (self.vehicle.location.global_frame.alt - current_location.alt))
+        target_location = LocationGlobal(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude + (self.vehicle.location.global_frame.alt - current_location.alt))
 
         # 드론에게 목적지로 이동하도록 명령
         self.vehicle.simple_goto(target_location)
 
-        return {"status": "이동 시작", "target_location": location}
+        return {"status": "이동 시작", "target_location": goto_location_info}
     
     def upload_mission(self, waypoint_list: WaypointList):
         if self.vehicle is None:
@@ -330,9 +330,9 @@ async def current_location(drone_id: str):
 
 
 @app.post("/goto_location")
-async def goto_location(drone_id: str, location: GotoLocation):
-    if drone_id in drones:
-        result = drones[drone_id].goto_location(location)
+async def goto_location(goto_location_info: GotoLocationInfo):
+    if goto_location_info.drone_id in drones:
+        result = drones[goto_location_info.drone_id].goto_location(goto_location_info)
         return result
     else:
         return {"status": "Drone not found"}
