@@ -201,7 +201,8 @@ class Drone:
 
         # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
         current_location = self.vehicle.location.global_relative_frame
-        target_location = LocationGlobal(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude + (self.vehicle.location.global_frame.alt - current_location.alt))
+        #target_location = LocationGlobal(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude + (self.vehicle.location.global_frame.alt - current_location.alt))
+        target_location = LocationGlobal(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude)
 
         # 드론에게 목적지로 이동하도록 명령
         self.vehicle.simple_goto(target_location)
