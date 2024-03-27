@@ -7,6 +7,7 @@ from dronekit import Command
 from pymavlink import mavutil
 import time
 import math
+import requests
 
 app = FastAPI()
 
@@ -54,6 +55,14 @@ class Drone:
     def connect(self):
         try:
             self.vehicle = connect(self.connection_string, wait_ready=True)
+
+            if (self.vehicle.location.global_frame.alt==None):
+                lat = float(self.vehicle.location.global_frame.lat)
+                lon = float(self.vehicle.location.global_frame.lon)
+                alt = self.get_elevation(self.vehicle.location.global_frame.lat, self.vehicle.location.global_frame.lon)
+                new_home_location = LocationGlobal(lat, lon, alt)
+                self.vehicle.home_location = new_home_location
+            
             return {"status": "Connected", "details": str(self.vehicle)}
         except APIException as e:
             return {"status": "Failed", "details": str(e)}
@@ -187,6 +196,8 @@ class Drone:
         }
     
     def goto_location(self, goto_location_info: GotoLocationInfo):
+        print(goto_location_info)
+
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
 
@@ -194,6 +205,8 @@ class Drone:
             raise HTTPException(status_code=400, detail="드론이 GUIDED 모드가 아닙니다.")
         
         self.vehicle.groundspeed = 10;
+
+        
 
         # LocationGlobal 객체를 사용하여 해발 고도 기반으로 위치 설정
         #current_location = self.vehicle.location.global_relative_frame
@@ -241,6 +254,13 @@ class Drone:
             return {"status": "기체 시동을 해제하였습니다."}
         else:
             return {"status": "기체의 시동이 이미 해제되어 있습니다."}
+        
+    def get_elevation(self, lat, lon):
+        query = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
+        response = requests.get(query).json()  # API 호출
+        # 결과에서 해발 고도 추출
+        elevation = response['results'][0]['elevation']
+        return elevation
 
     
 
@@ -331,6 +351,7 @@ async def current_location(drone_id: str):
 
 @app.post("/goto_location")
 async def goto_location(goto_location_info: GotoLocationInfo):
+    print(goto_location_info)
     if goto_location_info.drone_id in drones:
         result = drones[goto_location_info.drone_id].goto_location(goto_location_info)
         return result
