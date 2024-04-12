@@ -40,11 +40,16 @@ class GotoLocationInfo(BaseModel):
     method: str
 
 class Waypoint(BaseModel):
+    command: str
+    altitudeType: str
+    delay: int
+    radius: int
     latitude: float
     longitude: float
     altitude: float
 
 class WaypointList(BaseModel):
+    drone_id: str
     waypoints: List[Waypoint]
 
 class Drone:
@@ -230,13 +235,40 @@ class Drone:
         time.sleep(2)
 
         # 시작점을 웨이포인트로 추가
-        home = self.vehicle.location.global_relative_frame
+        #home = self.vehicle.location.global_relative_frame
         #cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
 
         # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
+
         for waypoint in waypoint_list.waypoints:
-            cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
-            #Command(target_system=0, target_component=0, seq=0, frame=3, command=16, current=0, autocontinue=0, param1=0, param2=0, param3=0, param4=0, x=waypoint.latitude, y=waypoint.longitude, z=waypoint.altitude)
+            if waypoint.command == "waypoint":
+                command = mavutil.mavlink.MAV_CMD_NAV_WAYPOINT
+            elif waypoint.command == "takeoff":
+                command = mavutil.mavlink.MAV_CMD_NAV_TAKEOFF
+            elif waypoint.command == "land":
+                command = mavutil.mavlink.MAV_CMD_NAV_LAND
+            
+
+            if waypoint.altitudeType == "relative":
+                altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
+            elif waypoint.altitudeType == "terrain ":
+                altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
+            elif waypoint.altitudeType == "absolute":
+                altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL
+
+
+            cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, waypoint.delay, waypoint.radius, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
+            #cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, 1.0, 1.0, 0, 0, waypoint.latitude, waypoint.longitude, 10.0))
+            #Command(target_system, target_component, seq, frame, command, current, autocontinue, param1, param2, param3, param4, x, y, z)
+            #target_system: 명령을 수신할 시스템의 ID입니다. 일반적으로 드론에 명령을 보낼 때는 0을 사용하여 모든 시스템이 이 명령을 수신할 수 있게 합니다.
+            #target_component: 명령을 수신할 컴포넌트의 ID입니다. 컴포넌트는 시스템 내의 개별 요소를 나타냅니다. 대부분의 경우 0을 사용하여 주요 컴포넌트가 명령을 처리하도록 합니다.
+            #seq: 명령 시퀀스 번호입니다. 미션 내에서 명령의 순서를 정의합니다. 보통 이 값은 Command 객체를 commands 목록에 추가할 때 자동으로 관리됩니다.
+            #frame: 명령의 좌표계를 정의합니다. 예를 들어, MAV_FRAME_GLOBAL_RELATIVE_ALT는 지구를 기준으로 한 좌표계에서 상대 고도를 사용함을 의미합니다.
+            #command: 실행할 명령의 유형을 나타내는 MAVLink 명령 ID입니다. 예를 들어, MAV_CMD_NAV_WAYPOINT는 경로점(waypoint) 이동 명령을 나타냅니다.
+            #current: 현재 명령이 실행 중인지 여부를 나타냅니다. 0이면 아니오, 1이면 예입니다. 일반적으로 처음 명령을 추가할 때는 0을 사용합니다.
+            #autocontinue: 이 명령 실행 후 다음 명령으로 자동으로 넘어갈지 여부를 나타냅니다. 0은 아니오, 1은 예입니다.
+            #param1 ~ param4: 명령에 전달되는 특정 파라미터입니다. 이 파라미터들의 의미는 command에 따라 다릅니다. 예를 들어, MAV_CMD_NAV_WAYPOINT의 경우 param1은 대기 시간, param2 ~ param4는 사용되지 않습니다.
+            #x, y, z: 명령의 위치를 나타냅니다. 일반적으로 x와 y는 위도와 경도를, z는 고도를 의미합니다. 위치 기반 명령에만 해당합니다.
 
         cmds.upload()  # 기체에 웨이포인트 리스트 전송
         return {"status": "웨이포인트 업로드 완료"}
@@ -359,9 +391,10 @@ async def goto_location(goto_location_info: GotoLocationInfo):
         return {"status": "Drone not found"}
 
 @app.post("/upload_mission")
-async def upload_mission(drone_id: str, waypoint_list: WaypointList):
-    if drone_id in drones:
-        result = drones[drone_id].upload_mission(waypoint_list)
+async def upload_mission(waypoint_list: WaypointList):
+    print(waypoint_list)
+    if waypoint_list.drone_id in drones:
+        result = drones[waypoint_list.drone_id].upload_mission(waypoint_list)
         return result
     else:
         return {"status": "Drone not found"}
