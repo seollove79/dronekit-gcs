@@ -232,15 +232,13 @@ class Drone:
 
         cmds = self.vehicle.commands
         cmds.clear()
-        time.sleep(2)
+        while len(cmds) > 0:
+            time.sleep(0.5)
 
-        # 시작점을 웨이포인트로 추가
-        #home = self.vehicle.location.global_relative_frame
-        #cmds.add(Command(0, 0, 0, 3, 22, 0, 0, home.lat, home.lon, home.alt, True, 0, 0, 0, 0))
 
         # 받은 웨이포인트 리스트를 기체의 웨이포인트 리스트에 추가
-
         for waypoint in waypoint_list.waypoints:
+
             if waypoint.command == "waypoint":
                 command = mavutil.mavlink.MAV_CMD_NAV_WAYPOINT
             elif waypoint.command == "takeoff":
@@ -258,6 +256,9 @@ class Drone:
 
 
             cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, waypoint.delay, waypoint.radius, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
+            if cmds.count < 1:
+                cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, waypoint.delay, waypoint.radius, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
+
             #cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, 1.0, 1.0, 0, 0, waypoint.latitude, waypoint.longitude, 10.0))
             #Command(target_system, target_component, seq, frame, command, current, autocontinue, param1, param2, param3, param4, x, y, z)
             #target_system: 명령을 수신할 시스템의 ID입니다. 일반적으로 드론에 명령을 보낼 때는 0을 사용하여 모든 시스템이 이 명령을 수신할 수 있게 합니다.
@@ -271,7 +272,38 @@ class Drone:
             #x, y, z: 명령의 위치를 나타냅니다. 일반적으로 x와 y는 위도와 경도를, z는 고도를 의미합니다. 위치 기반 명령에만 해당합니다.
 
         cmds.upload()  # 기체에 웨이포인트 리스트 전송
-        return {"status": "웨이포인트 업로드 완료"}
+        return {"status": "success"}
+
+    # 기체에서 mission 읽어오는 함수
+    def download_mission(self):
+        if self.vehicle is None:
+            raise HTTPException(status_code=400, detail="No active drone connection")
+
+        cmds = self.vehicle.commands
+        cmds.download()
+        cmds.wait_ready()
+
+        missionlist = []
+        for cmd in cmds:
+            # cmd 객체의 필요한 속성만 추출하여 딕셔너리로 저장
+            command_data = {
+                "seq": cmd.seq,
+                "frame": cmd.frame,
+                "command": cmd.command,
+                "current": cmd.current,
+                "autocontinue": cmd.autocontinue,
+                "param1": cmd.param1,
+                "param2": cmd.param2,
+                "param3": cmd.param3,
+                "param4": cmd.param4,
+                "x": cmd.x,
+                "y": cmd.y,
+                "z": cmd.z
+            }
+            missionlist.append(command_data)
+        return {"mission": missionlist}
+    
+        
     
     def disarm_drone(self):
         if self.vehicle is None:
@@ -392,9 +424,16 @@ async def goto_location(goto_location_info: GotoLocationInfo):
 
 @app.post("/upload_mission")
 async def upload_mission(waypoint_list: WaypointList):
-    print(waypoint_list)
     if waypoint_list.drone_id in drones:
         result = drones[waypoint_list.drone_id].upload_mission(waypoint_list)
+        return result
+    else:
+        return {"status": "Drone not found"}
+    
+@app.get("/download_mission/{drone_id}")
+async def download_mission(drone_id: str):
+    if drone_id in drones:
+        result = drones[drone_id].download_mission()
         return result
     else:
         return {"status": "Drone not found"}
