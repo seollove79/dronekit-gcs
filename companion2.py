@@ -61,6 +61,10 @@ class Drone:
         try:
             self.vehicle = connect(self.connection_string, wait_ready=True)
 
+            self.vehicle.add_message_listener('HEARTBEAT', self.common_callback)
+            self.vehicle.add_message_listener('SYS_STATUS', self.common_callback)
+
+
             if (self.vehicle.location.global_frame.alt==None):
                 lat = float(self.vehicle.location.global_frame.lat)
                 lon = float(self.vehicle.location.global_frame.lon)
@@ -246,13 +250,14 @@ class Drone:
             elif waypoint.command == "land":
                 command = mavutil.mavlink.MAV_CMD_NAV_LAND
             
-
             if waypoint.altitudeType == "relative":
                 altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
-            elif waypoint.altitudeType == "terrain ":
-                altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
-            elif waypoint.altitudeType == "absolute":
+            if waypoint.altitudeType == "terrain":
                 altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL
+            if waypoint.altitudeType == "absolute":
+                altitudeType = mavutil.mavlink.MAV_FRAME_GLOBAL
+
+
 
 
             cmds.add(Command(0, 0, 0, altitudeType, command, 0, 0, waypoint.delay, waypoint.radius, 0, 0, waypoint.latitude, waypoint.longitude, waypoint.altitude))
@@ -325,6 +330,17 @@ class Drone:
         # 결과에서 해발 고도 추출
         elevation = response['results'][0]['elevation']
         return elevation
+    
+    def common_callback(self, vehicle, name, message):
+        if name == 'HEARTBEAT':
+            print(f"HEARTBEAT: {message}")
+        elif name == 'SYS_STATUS':
+            print(f"SYS_STATUS: {message}")
+        # elif name == 'ATTITUDE':
+        #     print(f"Attitude: Pitch {message.pitch}, Yaw {message.yaw}, Roll {message.roll}")
+
+
+    
 
     
 
@@ -370,6 +386,8 @@ async def arm_drone(drone_id: str):
         return result
     else:
         return {"status": "Drone not found"}
+
+
     
 @app.get("/disarm_drone/{drone_id}")
 async def disarm_drone(drone_id: str):
@@ -383,6 +401,16 @@ async def disarm_drone(drone_id: str):
 async def takeoff(takeoff_info: TakeoffInfo):
     if takeoff_info.drone_id in drones:
         result = drones[takeoff_info.drone_id].takeoff(takeoff_info)
+        return result
+    else:
+        return {"status": "Drone not found"}
+    
+@app.post("/arm_and_takeoff")
+async def arm_and_kakeoff(takeoff_info: TakeoffInfo):
+    if takeoff_info.drone_id in drones:
+        result = drones[takeoff_info.drone_id].arm_drone()
+        if result["status"] == "Armed":
+            result = drones[takeoff_info.drone_id].takeoff(takeoff_info)
         return result
     else:
         return {"status": "Drone not found"}
