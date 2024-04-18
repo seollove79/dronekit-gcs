@@ -53,16 +53,18 @@ class WaypointList(BaseModel):
     waypoints: List[Waypoint]
 
 class Drone:
+
     def __init__(self, connection_string):
         self.connection_string = connection_string
         self.vehicle = None
+        self.message = []
 
     def connect(self):
         try:
             self.vehicle = connect(self.connection_string, wait_ready=True)
 
-            self.vehicle.add_message_listener('HEARTBEAT', self.common_callback)
-            self.vehicle.add_message_listener('SYS_STATUS', self.common_callback)
+            self.vehicle.add_message_listener('*', self.common_callback)
+            # self.vehicle.add_message_listener('SYS_STATUS', self.common_callback)
 
 
             if (self.vehicle.location.global_frame.alt==None):
@@ -332,17 +334,14 @@ class Drone:
         return elevation
     
     def common_callback(self, vehicle, name, message):
-        if name == 'HEARTBEAT':
-            print(f"HEARTBEAT: {message}")
-        elif name == 'SYS_STATUS':
-            print(f"SYS_STATUS: {message}")
-        # elif name == 'ATTITUDE':
-        #     print(f"Attitude: Pitch {message.pitch}, Yaw {message.yaw}, Roll {message.roll}")
+        if name == 'MISSION_ACK':
+            new_message = {"name": name, "message": str(message)}
+            self.message.append(new_message)
 
-
-    
-
-    
+    def download_message(self):
+        if self.vehicle is None:
+            raise HTTPException(status_code=400, detail="No active drone connection")
+        return {"message" : self.message}
 
 
 # 드론 인스턴스를 관리하는 딕셔너리
@@ -462,6 +461,14 @@ async def upload_mission(waypoint_list: WaypointList):
 async def download_mission(drone_id: str):
     if drone_id in drones:
         result = drones[drone_id].download_mission()
+        return result
+    else:
+        return {"status": "Drone not found"}
+    
+@app.get("/download_message/{drone_id}")
+async def download_message(drone_id: str):
+    if drone_id in drones:
+        result = drones[drone_id].download_message()
         return result
     else:
         return {"status": "Drone not found"}
