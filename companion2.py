@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException, LocationGlobal
+from dronekit import connect, VehicleMode, LocationGlobalRelative, APIException, LocationGlobal, Vehicle
 from typing import List
 from dronekit import Command
 from pymavlink import mavutil
@@ -63,9 +63,20 @@ class Drone:
         try:
             self.vehicle = connect(self.connection_string, wait_ready=True)
 
-            self.vehicle.add_message_listener('*', self.common_callback)
+            # self.vehicle.add_message_listener('*', self.common_callback)
             # self.vehicle.add_message_listener('SYS_STATUS', self.common_callback)
 
+            @self.vehicle.on_message('MISSION_ACK')
+            def mission_item_callback(_, name, message):
+                print(f"Got message {name}: {message}")
+                new_message = {"name": name, "message": str(message)}
+                self.message.append(new_message)
+
+            @self.vehicle.on_message('MISSION_ITEM_REACHED')
+            def mission_item_callback(_, name, message):
+                print(f"Got message {name}: {message}")
+                new_message = {"name": name, "message": str(message)}
+                self.message.append(new_message)
 
             if (self.vehicle.location.global_frame.alt==None):
                 lat = float(self.vehicle.location.global_frame.lat)
