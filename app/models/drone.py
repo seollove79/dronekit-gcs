@@ -15,14 +15,23 @@ class Drone:
     def connect(self):
         try:
             self.vehicle = connect(self.connection_string, wait_ready=True)
-            @self.vehicle.on_message('MISSION_ACK')
-            def mission_item_callback(_, name, message):
-                new_message = {"name": name, "message": str(message)}
-                self.message.append(new_message)
-            @self.vehicle.on_message('MISSION_ITEM_REACHED')
-            def mission_item_callback(_, name, message):
-                new_message = {"name": name, "message": str(message)}
-                self.message.append(new_message)
+
+            @self.vehicle.on_message('*')
+            def listener(_, name, message):
+                if name == 'MISSION_ACK' or name == 'MISSION_ITEM_REACHED' :
+                    new_message = {"name": name, "message": str(message)}
+                    self.message.append(new_message)
+
+            # @self.vehicle.on_message('MISSION_ITEM_REACHED')
+            # def mission_item_callback(_, name, message):
+            #     new_message = {"name": name, "message": str(message)}
+            #     self.message.append(new_message)
+
+            # @self.vehicle.on_message('AUTOPILOT_VERSION')
+            # def mission_item_callback(_, name, message):
+            #     new_message = {"name": name, "message": str(message)}
+            #     self.message.append(new_message)
+
             if self.vehicle.location.global_frame.alt is None:
                 lat = float(self.vehicle.location.global_frame.lat)
                 lon = float(self.vehicle.location.global_frame.lon)
