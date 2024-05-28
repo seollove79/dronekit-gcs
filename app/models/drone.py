@@ -78,14 +78,33 @@ class Drone:
     def change_mode(self, change_mode_info: ChangeModeInfo):
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
+        # try:
+        #     new_mode = VehicleMode(change_mode_info.new_mode)
+        #     self.vehicle.mode = new_mode
+        #     while not self.vehicle.mode.name == change_mode_info.new_mode:
+        #         time.sleep(1)
+        #     return {"status": "모드 변경됨", "new_mode": change_mode_info.new_mode}
+        # except APIException as e:
+        #     raise HTTPException(status_code=500, detail=str(e))
+        
         try:
             new_mode = VehicleMode(change_mode_info.new_mode)
             self.vehicle.mode = new_mode
+            start_time = time.time()
+            timeout = 5  # 최대 대기 시간 (초)
             while not self.vehicle.mode.name == change_mode_info.new_mode:
+                if time.time() - start_time > timeout:
+                    raise HTTPException(status_code=500, detail="Failed to change mode to GUIDED within the timeout period.")
                 time.sleep(1)
+            if self.vehicle.mode.name == "LOITER":
+                self.vehicle.channels.overrides['3'] = 1500
+            if self.vehicle.mode.name == "GUIDED":
+                self.send_ned_velocity(0, -1, 0, 1)
             return {"status": "모드 변경됨", "new_mode": change_mode_info.new_mode}
         except APIException as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
 
     def land(self):
         if self.vehicle is None:
@@ -142,8 +161,17 @@ class Drone:
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="활성 드론 연결이 없습니다.")
         if self.vehicle.mode.name != "GUIDED":
-            raise HTTPException(status_code=400, detail="드론이 GUIDED 모드가 아닙니다.")
-        self.vehicle.groundspeed = 10
+            try:
+                self.vehicle.mode = VehicleMode("GUIDED")
+                start_time = time.time()
+                timeout = 5  # 최대 대기 시간 (초)
+                while not self.vehicle.mode.name == "GUIDED":
+                    if time.time() - start_time > timeout:
+                        raise HTTPException(status_code=500, detail="Failed to change mode to GUIDED within the timeout period.")
+                    time.sleep(1)
+            except APIException as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        self.vehicle.groundspeed = 4
         if goto_location_info.method == "relative":
             target_location = LocationGlobalRelative(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude)
         else:
@@ -232,3 +260,25 @@ class Drone:
         if self.vehicle is None:
             raise HTTPException(status_code=400, detail="No active drone connection")
         return {"message": self.message}
+    
+    def send_ned_velocity(self, velocity_x, velocity_y, velocity_z, duration):
+        """
+        드론에 NED 좌표계를 기준으로 속도 명령을 보냅니다.
+        :param velocity_x: 북쪽으로의 속도 (m/s)
+        :param velocity_y: 동쪽으로의 속도 (m/s)
+        :param velocity_z: 아래로의 속도 (m/s)
+        :param duration: 명령을 지속할 시간 (s)
+        """
+        msg = self.vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # 타임스탬프
+            0, 0,  # 타깃 시스템, 타깃 컴포넌트
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # 좌표계
+            0b0000111111000111,  # 제어할 항목
+            0, 0, 0,  # x, y, z 위치
+            velocity_x, velocity_y, velocity_z,  # x, y, z 속도
+            0, 0, 0,  # x, y, z 가속도 (사용 안 함)
+            0, 0)  # yaw, yaw_rate (사용 안 함)
+
+        for x in range(0, duration):
+            self.vehicle.send_mavlink(msg)
+            time.sleep(1)
