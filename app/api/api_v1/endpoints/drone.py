@@ -15,6 +15,10 @@ async def connect_drone(connection_info: ConnectionInfo):
     if drone_id in drones:
         return {"status": "Already Connected", "details": str(drones[drone_id].vehicle)}
     
+    for key, drone in drones.items():
+        if drone.connection_string == connection_info.connection_string:
+            return {"status": "Already Connected", "details": str(drone.vehicle)}
+    
     drone = Drone(connection_info.connection_string)
     connection_result = drone.connect()
     drones[drone_id] = drone
