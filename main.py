@@ -17,7 +17,7 @@ rtsp_url = "rtsp://192.168.144.108:554/stream=1"
 # GStreamer 파이프라인 설정
 Gst.init(None)
 pipeline = Gst.parse_launch(
-    f"rtspsrc location={rtsp_url} latency=0 ! queue ! decodebin ! videoconvert ! video/x-raw,format=BGR ! videorate ! video/x-raw,framerate=30/1 ! appsink name=sink max-buffers=1 drop=true"
+    f"rtspsrc location={rtsp_url} latency=0 ! queue ! decodebin ! videoconvert ! videoscale ! video/x-raw,format=BGR,width=640,height=360 ! videorate ! video/x-raw,framerate=30/1 ! appsink name=sink max-buffers=1 drop=true"
 )
 appsink = pipeline.get_by_name("sink")
 appsink.set_property("emit-signals", True)
@@ -53,9 +53,12 @@ async def generate_frames(request: Request):
                 buffer=buf.extract_dup(0, buf.get_size()),
                 dtype=np.uint8
             )
-            
+
+            # 프레임 크기를 줄임
+            resized_frame = cv2.resize(arr, (640, 360))
+
             # 프레임을 JPEG 형식으로 인코딩
-            ret, buffer = cv2.imencode('.jpg', arr)
+            ret, buffer = cv2.imencode('.jpg', resized_frame)
             if not ret:
                 continue
 
@@ -80,4 +83,4 @@ async def lifespan(app: FastAPI):
 app.router.lifespan_context = lifespan
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
