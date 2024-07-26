@@ -16,7 +16,7 @@ rtsp_url = "rtsp://210.99.70.120:1935/live/cctv001.stream"
 # GStreamer 파이프라인 설정
 Gst.init(None)
 pipeline = Gst.parse_launch(
-    f"rtspsrc location={rtsp_url} latency=50 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink name=sink"
+    f"rtspsrc location={rtsp_url} latency=50 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink name=sink max-buffers=1 drop=true"
 )
 appsink = pipeline.get_by_name("sink")
 appsink.set_property("emit-signals", True)
