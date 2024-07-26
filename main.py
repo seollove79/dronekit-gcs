@@ -11,13 +11,13 @@ from contextlib import asynccontextmanager
 
 app = FastAPI()
 
-#rtsp_url = "rtsp://210.99.70.120:1935/live/cctv001.stream"
+# rtsp_url 설정
 rtsp_url = "rtsp://192.168.144.108:554/stream=1"
 
 # GStreamer 파이프라인 설정
 Gst.init(None)
 pipeline = Gst.parse_launch(
-    f"rtspsrc location={rtsp_url} latency=50 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink name=sink max-buffers=1 drop=true"
+    f"rtspsrc location={rtsp_url} latency=0 ! queue ! decodebin ! videoconvert ! video/x-raw,format=BGR ! videorate ! video/x-raw,framerate=30/1 ! appsink name=sink max-buffers=1 drop=true"
 )
 appsink = pipeline.get_by_name("sink")
 appsink.set_property("emit-signals", True)
@@ -80,4 +80,4 @@ async def lifespan(app: FastAPI):
 app.router.lifespan_context = lifespan
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
