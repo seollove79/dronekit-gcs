@@ -11,7 +11,8 @@ from contextlib import asynccontextmanager
 
 app = FastAPI()
 
-rtsp_url = "rtsp://210.99.70.120:1935/live/cctv001.stream"
+#rtsp_url = "rtsp://210.99.70.120:1935/live/cctv001.stream"
+rtsp_url = "rtsp://192.168.144.108:554/stream=1"
 
 # GStreamer 파이프라인 설정
 Gst.init(None)
