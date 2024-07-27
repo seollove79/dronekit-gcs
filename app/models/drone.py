@@ -14,7 +14,9 @@ class Drone:
 
     def connect(self):
         try:
-            self.vehicle = connect(self.connection_string, wait_ready=True)
+            #self.vehicle = connect(self.connection_string, wait_ready=True)
+            #임시로 시리얼 연결로 변경
+            self.vehicle = connect('/dev/serial/by-id/usb-ArduPilot_KakuteH7v2_2C0036000151313131393134-if00', baud=115200, wait_ready=True)
 
             @self.vehicle.on_message('*')
             def listener(_, name, message):
