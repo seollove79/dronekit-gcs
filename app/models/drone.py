@@ -14,9 +14,20 @@ class Drone:
 
     def connect(self):
         try:
-            #self.vehicle = connect(self.connection_string, wait_ready=True)
-            #임시로 시리얼 연결로 변경
-            self.vehicle = connect('/dev/serial/by-id/usb-ArduPilot_KakuteH7v2_2C0036000151313131393134-if00', baud=115200, wait_ready=True)
+            connection_string = self.connection_string
+            connection_type = connection_string.split(":")[0]
+            if connection_type == "tcp" or connection_type == "direct_tcp":
+                self.vehicle = connect(connection_string, wait_ready=True)
+            elif connection_type == "direct":
+                print("=============")
+                print(connection_string.split(":")[1])
+                print("=============")
+                self.vehicle = connect(connection_string.split(":")[1], baud=921600, wait_ready=True)
+
+
+            #self.vehicle = connect(connection_string, wait_ready=True)
+            #오렌지파이용 연결명령
+            #self.vehicle = connect('/dev/serial/by-id/usb-ArduPilot_KakuteH7v2_2C0036000151313131393134-if00', baud=115200, wait_ready=True)
 
             @self.vehicle.on_message('*')
             def listener(_, name, message):
