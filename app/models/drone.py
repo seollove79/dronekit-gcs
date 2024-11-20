@@ -187,7 +187,7 @@ class Drone:
                     time.sleep(1)
             except APIException as e:
                 raise HTTPException(status_code=500, detail=str(e))
-        self.vehicle.groundspeed = 15
+        self.vehicle.groundspeed = 3
         if goto_location_info.method == "relative":
             target_location = LocationGlobalRelative(goto_location_info.latitude, goto_location_info.longitude, goto_location_info.altitude)
         else:
